@@ -148,6 +148,9 @@ async def reset_password_complete(
     user_db = await db.execute(select(UserModel).where(UserModel.email == data.email))
     user = user_db.scalar_one_or_none()
 
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="Invalid email or token.")
+
     reset_token_result = await db.execute(
         select(PasswordResetTokenModel).where(
             PasswordResetTokenModel.user_id == user.id
@@ -155,8 +158,6 @@ async def reset_password_complete(
     )
     reset_token = reset_token_result.scalar_one_or_none()
 
-    if not user or not user.is_active:
-        raise HTTPException(status_code=400, detail="Invalid email or token.")
 
     if not reset_token or reset_token.token != data.token:
         if reset_token:
@@ -194,7 +195,7 @@ async def login(
     user_db = await db.execute(select(UserModel).where(UserModel.email == data.email))
     user = user_db.scalar_one_or_none()
 
-    if not user or not verify_password(data.password, user.hashed_password):
+    if not user or not verify_password(data.password, user._hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password.")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="User account is not activated.")
@@ -224,7 +225,7 @@ async def login(
 
 
 @router.post(
-    "/api/v1/accounts/refresh",
+    "/api/v1/accounts/refresh/",
     status_code=200,
     response_model=schemas.TokenRefreshResponseSchema,
 )

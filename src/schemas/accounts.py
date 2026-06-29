@@ -5,7 +5,7 @@ from database import accounts_validators
 
 class UserRegistrationRequestSchema(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
+    password: str
 
     @field_validator("password")
     @classmethod

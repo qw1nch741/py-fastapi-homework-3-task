@@ -223,11 +223,9 @@ async def login(
         )
 
 
-@router.post(
-    "/api/v1/accounts/refresh/",
-    status_code=200,
-    response_model=schemas.TokenRefreshResponseSchema,
-)
+@router.post("/refresh/",
+             status_code=200,
+             response_model=schemas.TokenRefreshResponseSchema)
 async def refresh(
     data: schemas.TokenRefreshSchema,
     db: AsyncSession = Depends(get_db),

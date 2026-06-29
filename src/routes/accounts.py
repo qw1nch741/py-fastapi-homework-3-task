@@ -158,7 +158,6 @@ async def reset_password_complete(
     )
     reset_token = reset_token_result.scalar_one_or_none()
 
-
     if not reset_token or reset_token.token != data.token:
         if reset_token:
             await db.delete(reset_token)

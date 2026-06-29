@@ -1,15 +1,13 @@
 from datetime import datetime, timezone
 from typing import cast
 
-from security.passwords import hash_password, verify_password
+from security.passwords import, verify_password
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy import select, delete
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session, joinedload
 
 import schemas
-from config import get_jwt_auth_manager, get_settings, BaseAppSettings
+from config import get_jwt_auth_manager
 from database import (
     get_db,
     UserModel,
@@ -19,7 +17,6 @@ from database import (
     PasswordResetTokenModel,
     RefreshTokenModel,
 )
-from exceptions import BaseSecurityError
 from security.interfaces import JWTAuthManagerInterface
 import secrets
 from security.passwords import hash_password

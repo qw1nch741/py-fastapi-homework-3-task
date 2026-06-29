@@ -3,11 +3,13 @@ from typing import cast
 
 from security.passwords import, verify_password
 from fastapi import APIRouter, Depends, status, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, delete
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session, joinedload
 
 import schemas
-from config import get_jwt_auth_manager
+from config import get_jwt_auth_manager, get_settings, BaseAppSettings
 from database import (
     get_db,
     UserModel,
@@ -17,6 +19,7 @@ from database import (
     PasswordResetTokenModel,
     RefreshTokenModel,
 )
+from exceptions import BaseSecurityError
 from security.interfaces import JWTAuthManagerInterface
 import secrets
 from security.passwords import hash_password
@@ -44,7 +47,12 @@ async def register_user(
 
     try:
         hashed_pwd = hash_password(user_data.password)
-        user = UserModel(email=user_data.email, hashed_password=hashed_pwd, id=user_group.id, group_id=user_group.id)
+        user = UserModel(
+            email=user_data.email,
+            hashed_password=hashed_pwd,
+            id=user_group.id,
+            group_id=user_group.id,
+        )
         db.add(user)
         await db.flush()
 
@@ -77,7 +85,9 @@ async def activate_user(
     user = result.scalar_one_or_none()
 
     if not user or user.is_active:
-        raise HTTPException(status_code=400, detail="Invalid or expired activation token.")
+        raise HTTPException(
+            status_code=400, detail="Invalid or expired activation token."
+        )
 
     token_result = await db.execute(
         select(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id)

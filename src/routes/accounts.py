@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import cast
 
-from security.passwords import, verify_password
+from security.passwords import verify_password
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy import select, delete
 from sqlalchemy.exc import SQLAlchemyError

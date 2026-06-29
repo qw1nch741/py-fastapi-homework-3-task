@@ -47,10 +47,9 @@ async def register_user(
 
     try:
         hashed_pwd = hash_password(user_data.password)
-        user = UserModel(
+        user = UserModel.create(
             email=user_data.email,
-            hashed_password=hashed_pwd,
-            id=user_group.id,
+            raw_password=user_data.password,
             group_id=user_group.id,
         )
         db.add(user)
@@ -85,9 +84,7 @@ async def activate_user(
     user = result.scalar_one_or_none()
 
     if not user or user.is_active:
-        raise HTTPException(
-            status_code=400, detail="Invalid or expired activation token."
-        )
+        raise HTTPException(status_code=400, detail="User account is already active.")
 
     token_result = await db.execute(
         select(ActivationTokenModel).where(ActivationTokenModel.user_id == user.id)
@@ -150,15 +147,15 @@ async def reset_password_complete(
     user_db = await db.execute(select(UserModel).where(UserModel.email == data.email))
     user = user_db.scalar_one_or_none()
 
-    if not user or not user.is_active:
-        raise HTTPException(status_code=400, detail="Invalid email or token.")
-
     reset_token_result = await db.execute(
         select(PasswordResetTokenModel).where(
             PasswordResetTokenModel.user_id == user.id
         )
     )
     reset_token = reset_token_result.scalar_one_or_none()
+
+    if not user or not user.is_active:
+        raise HTTPException(status_code=400, detail="Invalid email or token.")
 
     if not reset_token or reset_token.token != data.token:
         raise HTTPException(status_code=400, detail="Invalid email or token.")
@@ -185,7 +182,7 @@ async def reset_password_complete(
     return {"message": "Password reset successfully."}
 
 
-@router.post("/login/", status_code=200, response_model=schemas.TokenResponseSchema)
+@router.post("/login/", status_code=201, response_model=schemas.TokenResponseSchema)
 async def login(
     data: schemas.UserLoginRequestSchema,
     db: AsyncSession = Depends(get_db),

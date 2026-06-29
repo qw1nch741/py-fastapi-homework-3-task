@@ -223,28 +223,29 @@ async def login(
         )
 
 
-@router.post("/refresh/",
-             status_code=200,
-             response_model=schemas.TokenRefreshResponseSchema)
+@router.post("/refresh/", status_code=200, response_model=schemas.TokenRefreshResponseSchema)
 async def refresh(
-    data: schemas.TokenRefreshSchema,
-    db: AsyncSession = Depends(get_db),
-    jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
+        data: schemas.TokenRefreshSchema,
+        db: AsyncSession = Depends(get_db),
+        jwt_manager: JWTAuthManagerInterface = Depends(get_jwt_auth_manager),
 ):
     try:
-        payload = jwt_manager.decode_refresh_token(data.access_token)
+        # 1. FIXED: Use data.refresh_token instead of access_token
+        payload = jwt_manager.decode_refresh_token(data.refresh_token)
         user_id = payload.get("user_id")
     except Exception:
         raise HTTPException(status_code=400, detail="Token has expired.")
 
+    # 2. FIXED: Query using data.refresh_token
     refresh_token_result = await db.execute(
-        select(RefreshTokenModel).where(RefreshTokenModel.token == data.access_token)
+        select(RefreshTokenModel).where(RefreshTokenModel.token == data.refresh_token)
     )
     refresh_token = refresh_token_result.scalar_one_or_none()
 
     if not refresh_token:
         raise HTTPException(status_code=401, detail="Refresh token not found.")
 
+    # 3. FIXED: Security check to ensure the token actually belongs to the user inside the payload
     if refresh_token.user_id != user_id:
         raise HTTPException(status_code=401, detail="Refresh token not found.")
 
@@ -254,6 +255,7 @@ async def refresh(
     if not user_exists:
         raise HTTPException(status_code=404, detail="User not found.")
 
+    # 4. Generate the new token
     new_token = jwt_manager.create_access_token(data={"user_id": user_id})
 
     return {"access_token": new_token}

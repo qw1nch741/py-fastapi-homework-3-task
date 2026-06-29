@@ -10,7 +10,7 @@ class UserRegistrationRequestSchema(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_strength(cls, v):
-        return accounts_validators.validate_password(v)
+        return accounts_validators.validate_password_strength(v)
 
 
 class UserLoginRequestSchema(BaseModel):
@@ -47,8 +47,8 @@ class TokenResponseSchema(BaseModel):
 
 
 class TokenRefreshSchema(BaseModel):
-    access_token: str
+    refresh_token: str
 
 
 class TokenRefreshResponseSchema(BaseModel):
-    access_token: str
+    refresh_token: str
